@@ -60,6 +60,7 @@ model_renames = [
     ]
 
 
+@openupgrade.log()
 def disable_demo_data(cr):
     """ Disables the renewed loading of demo data """
     openupgrade.logged_query(
@@ -67,6 +68,7 @@ def disable_demo_data(cr):
         "UPDATE ir_module_module SET demo = false")
 
 
+@openupgrade.log()
 def rename_base_contact_columns(cr):
     """
     Rename columns only if res_partner_contact is installed
@@ -83,6 +85,7 @@ def rename_base_contact_columns(cr):
         })
 
 
+@openupgrade.log()
 def migrate_ir_attachment(cr):
     # Data is now stored in db_datas column and datas is a function field
     # like in the document module in 6.1. If the db_datas column already
@@ -92,6 +95,7 @@ def migrate_ir_attachment(cr):
             cr, {'ir_attachment': [('datas', 'db_datas')]})
 
 
+@openupgrade.log()
 def update_base_sql(cr):
     """
     Inject snippets of openerp/addons/base/base.sql, needed
@@ -144,6 +148,7 @@ CREATE TABLE ir_model_relation (
             "ALTER TABLE ir_act_client INHERIT ir_actions")
 
 
+@openupgrade.log()
 def create_users_partner(cr):
     """
     Users now have an inherits on res.partner.
@@ -213,6 +218,7 @@ def create_users_partner(cr):
                 (partner_id,))
 
 
+@openupgrade.log()
 def remove_obsolete_modules(cr, obsolete_modules):
     cr.execute(
         """

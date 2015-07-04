@@ -25,6 +25,7 @@ from openerp.openupgrade import openupgrade, openupgrade_70
 logger = logging.getLogger('OpenUpgrade')
 
 
+@openupgrade.log(logger=logger)
 def migrate_invoice_addresses(cr, pool):
     # Contact id takes precedence over old partner id
     openupgrade_70.set_partner_id_from_partner_address_id(
@@ -36,6 +37,7 @@ def migrate_invoice_addresses(cr, pool):
         'partner_id', openupgrade.get_legacy_name('address_invoice_id'))
 
 
+@openupgrade.log(logger=logger)
 def migrate_invoice_names(cr, pool):
     """
     Join existing char values and obsolete note values into
@@ -57,6 +59,7 @@ def migrate_invoice_names(cr, pool):
             {'name': name + note})
 
 
+@openupgrade.log(logger=logger)
 def lock_closing_reconciliations(cr, pool):
     """
     Reconciliations on closing entries are now locked
@@ -79,6 +82,7 @@ def lock_closing_reconciliations(cr, pool):
             {'opening_reconciliation': True})
 
 
+@openupgrade.log(logger=logger)
 def migrate_payment_term(cr, pool):
     partner_obj = pool.get('res.partner')
     field_id = pool.get('ir.model.fields').search(
@@ -121,6 +125,7 @@ def migrate_payment_term(cr, pool):
                 """, (SUPERUSER_ID, row[0], field_id, row[1], row[2]))
 
 
+@openupgrade.log(logger=logger)
 def merge_account_cashbox_line(cr, pool):
     # Check an unmanaged case by the migration script
     cr.execute("""
