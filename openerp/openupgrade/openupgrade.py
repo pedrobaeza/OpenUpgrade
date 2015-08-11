@@ -592,17 +592,20 @@ def reactivate_workflow_transitions(cr, transition_conditions):
 
 
 def log():
-    """Decorator for automatic logging of the executed method."""
-    def wrap(func, custom_logger=None):
+    """Decorator for automatic logging of the executed method.
+    :param custom_logger: for defining an specific logger
+    :param details: if True, more details are given in the log"""
+    def wrap(func, custom_logger=None, details=False):
         def wrapped_function(*args, **kwargs):
-            msg = "Executing %s" % func.__name__
-            if args:
-                msg += " with args %s" % args
-            if kwargs:
+            msg = "Executing method %s" % func.__name__
+            if details:
                 if args:
-                    msg += " and kwargs %s" % kwargs
-                else:
-                    msg += " with kwargs %s" % kwargs
+                    msg += " with args %s" % str(args)
+                if kwargs:
+                    if args:
+                        msg += " and kwargs %s" % str(kwargs)
+                    else:
+                        msg += " with kwargs %s" % str(kwargs)
             custom_logger.info(msg)
             func(*args, **kwargs)
         if custom_logger is None:
