@@ -27,6 +27,7 @@ from openerp.modules.registry import RegistryManager
 import openupgrade_tools
 from itertools import groupby
 from operator import attrgetter
+import progressbar
 
 # The server log level has not been set at this point
 # so to log at loglevel debug we need to set it
@@ -612,6 +613,25 @@ def log():
             custom_logger = logger
         return wrapped_function
     return wrap
+
+
+def logged_progress(func, iterator, title="", args=None, kwargs=None):
+    """Log the progress of a method that it's run across the elements of an
+    iterator. The passed method should have the individual element to treat
+    as the first argument. It can have more arguments that are passed through.
+    """
+    widgets = [title, progressbar.Percentage(), ' ', progressbar.Bar(),
+               ' ', progressbar.ETA()]
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
+    pbar = progressbar.ProgressBar(widgets=widgets,
+                                   maxval=len(iterator)).start()
+    for i, element in enumerate(iterator):
+        pbar.update(i)
+        func(element, *args, **kwargs)
+    pbar.finish()
 
 
 def migrate():
