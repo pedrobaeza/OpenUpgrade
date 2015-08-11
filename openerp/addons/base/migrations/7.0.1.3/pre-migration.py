@@ -197,7 +197,8 @@ def create_users_partner(cr):
     cr.execute(
         "SELECT id, name, active FROM res_users "
         "WHERE partner_id IS NULL")
-    for row in cr.fetchall():
+
+    def create_user_partner(row):
         cr.execute(
             "INSERT INTO res_partner "
             "(name, active) "
@@ -216,6 +217,10 @@ def create_users_partner(cr):
                 "(res_id, model, module, name, noupdate) "
                 "VALUES(%s, 'res.partner', 'base', 'partner_root', TRUE) ",
                 (partner_id,))
+
+    openupgrade.logged_progress(
+        create_user_partner, cr.fetchall(),
+        title="Creating partners for users: ")
 
 
 @openupgrade.log()

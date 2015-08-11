@@ -189,6 +189,45 @@ This can be the case if an additional module installed on your database changes
         partner_id = partner_obj.create(cr, SUPERUSER_ID, vals)
         set_address_partner(address_id, partner_id)
 
+    def process_res_partner_address(address_record):
+        row_cleaned = [val or False for val in address_record]
+        address = dict(zip(fields, row_cleaned))
+        partner_vals = address.copy()
+        partner_defaults = {
+            # list of values that we should not overwrite
+            # in existing partners
+            'customer': False,
+            'is_company': address['type'] != 'contact',
+            'type': address['type'],
+            'name': address['name'] or '/',
+            }
+        for f in ['name', 'id', 'type', 'partner_id']:
+            del partner_vals[f]
+        if not address['partner_id']:
+            # Dangling addresses, create with not is_company,
+            # not supplier and not customer
+            create_partner(address['id'], partner_vals, partner_defaults)
+        else:
+            if address['partner_id'] not in partner_found:
+                # Main partner address
+                partner_obj.write(
+                    cr, SUPERUSER_ID, address['partner_id'], partner_vals)
+                partner_found.append(address['partner_id'])
+                set_address_partner(address['id'], address['partner_id'])
+            else:
+                # any following address for an existing partner
+                partner_vals.update({
+                    'is_company': False,
+                    'parent_id': address['partner_id']})
+                propagated_values = partner_obj.read(
+                    cr, SUPERUSER_ID, address['partner_id'],
+                    propagate_fields, load="_classic_write")
+                propagated_values.pop('id')
+                partner_vals.update(propagated_values)
+                create_partner(
+                    address['id'], partner_vals, partner_defaults)
+        processed_ids.append(address['id'])
+
     def process_address_type(cr, whereclause, args=None):
         """
         Migrate addresses to partners, based on sql WHERE clause
@@ -198,44 +237,9 @@ This can be the case if an additional module installed on your database changes
             "SELECT " + ', '.join(fields) + "\n"
             "FROM res_partner_address\n"
             "WHERE " + whereclause, args or ())
-        for row in cr.fetchall():
-            row_cleaned = [val or False for val in row]
-            address = dict(zip(fields, row_cleaned))
-            partner_vals = address.copy()
-            partner_defaults = {
-                # list of values that we should not overwrite
-                # in existing partners
-                'customer': False,
-                'is_company': address['type'] != 'contact',
-                'type': address['type'],
-                'name': address['name'] or '/',
-                }
-            for f in ['name', 'id', 'type', 'partner_id']:
-                del partner_vals[f]
-            if not address['partner_id']:
-                # Dangling addresses, create with not is_company,
-                # not supplier and not customer
-                create_partner(address['id'], partner_vals, partner_defaults)
-            else:
-                if address['partner_id'] not in partner_found:
-                    # Main partner address
-                    partner_obj.write(
-                        cr, SUPERUSER_ID, address['partner_id'], partner_vals)
-                    partner_found.append(address['partner_id'])
-                    set_address_partner(address['id'], address['partner_id'])
-                else:
-                    # any following address for an existing partner
-                    partner_vals.update({
-                        'is_company': False,
-                        'parent_id': address['partner_id']})
-                    propagated_values = partner_obj.read(
-                        cr, SUPERUSER_ID, address['partner_id'],
-                        propagate_fields, load="_classic_write")
-                    propagated_values.pop('id')
-                    partner_vals.update(propagated_values)
-                    create_partner(
-                        address['id'], partner_vals, partner_defaults)
-            processed_ids.append(address['id'])
+        openupgrade.logged_progress(
+            process_res_partner_address, cr.fetchall(),
+            title="Creating partners for addresses: ")
 
     # Process all addresses, default type first
     process_address_type(cr, "type = 'default'")
